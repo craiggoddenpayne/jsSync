@@ -1,44 +1,150 @@
-﻿Task.prototype.handle = null;
-Task.prototype.execute = function () {
-    var result = null;
-    try {
-        result = this.handle();
-        for (var i = 0; i < this.onComplete.length; i++) {
-            result = this.onComplete[i].execute();
-        }
-    } catch (e) {
-        for (var i = 0; i < this.onCatch.length; i++) {
-            result = this.onCatch[i].execute();
-        }
-    }
+﻿"strict mode";
 
-    return result;
-};
-Task.prototype.onComplete = [];
-Task.prototype.chainOnComplete = function (taskFunction) {
-    this.onComplete.push(taskFunction);
-};
-Task.prototype.onCatch = [];
-Task.prototype.chainOnCatch = function (taskFunction) {
-    this.onCatch.push(taskFunction);
-};
-
-function Task(taskFunction) {
+function Task(taskFunction, id) {
     ///<summary>A task, representing a function</summary>
-    this.handle = taskFunction;
+    var task = Object.create(Task.prototype);
+    task.handle = taskFunction;
+    task.id = id;
+    if (task.id == null) {
+        task.id = "id" + Math.floor(Math.random() * 99999999);
+    }
+    return task;
 };
+
+Task.prototype = {
+    handle: null,
+    id: null,
+    onComplete: [],
+    onCatch: [],
+    clone: function(obj){
+        if(obj == null || typeof(obj) != 'object')
+            return obj;
+        var temp = obj.constructor();
+        for(var key in obj)
+            temp[key] = clone(obj[key]);
+        return temp;
+    },
+    execute: function() {
+        var result = null;
+        try {
+            result = this.handle();
+            for (var i = 0; i < this.onComplete.length; i++) {
+                if (this.onComplete[i] instanceof Task) {
+                    result = this.onComplete[i].execute(result);
+                } else if (this.onComplete[i] instanceof Function) {
+                    result = this.onComplete[i](result);
+                } else {
+                    throw "jsSyncException:onComplete cannot execute a type that is not a function or task. Type was " + typeof(this.onComplete[i]);
+                }
+            }
+        } catch(e) {
+            if (e.indexOf("jsSyncException:") == -1) {
+                for (var i = 0; i < this.onCatch.length; i++) {
+                    if (this.onCatch[i] instanceof Task) {
+                        result = this.onCatch[i].execute(result);
+                    } else if (this.onCatch[i] instanceof Function) {
+                        result = this.onCatch[i](result);
+                    } else {
+                        throw "jsSyncException:onCatch cannot execute a type that is not a function or task. Type was " + typeof(this.onCatch[i]);
+                    }
+                }
+            } else {
+                throw e;
+            }
+        }
+        return result;
+    },
+    chainOnComplete: function(taskFunction) {
+        var onComplete = this.clone(this.onComplete);
+        onComplete.push(taskFunction);
+        this.onComplete = onComplete;
+    },
+    chainOnCatch: function(taskFunction) {
+        var onCatch = this.clone(this.onCatch);
+        onCatch.push(taskFunction);
+        this.onCatch = onCatch;
+    },
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
 function TaskHandler() { }
 TaskHandler.prototype.tasks = [];
 TaskHandler.prototype.addTask = function (task) {
-    this.tasks.push(task);
+    if(task instanceof Function) {
+        task = new Task(task);
+    }
+    var tasks = this.clone(this.tasks);
+    tasks.push(task);
+    this.tasks = tasks;
+};
+TaskHandler.prototype.addTasks = function (arrayOfTask) {
+    var tasks = this.clone(this.tasks);
+    for(var i=0; i < arrayOfTask.length; i++) {    
+        if(arrayOfTask[i] instanceof Function) {
+            arrayOfTask[i] = new Task(arrayOfTask[i]);
+        }
+        tasks.push(arrayOfTask[i]);
+    }
+    this.tasks = tasks;
 };
 
+TaskHandler.prototype.clone = function(obj) {
+    if (obj == null || typeof(obj) != 'object')
+        return obj;
+    var temp = obj.constructor();
+    for (var key in obj)
+        temp[key] = clone(obj[key]);
+    return temp;
+};
 
-TaskHandler.prototype.executeSync = function () {
-    for (var i = 0; i < this.tasks; i++) {
-        this.tasks[i]();
+TaskHandler.prototype.executeSync = function (callback) {
+    var results = [];
+    var returns = 0;
+    var tasks = this.tasks;
+    function callbackWait(result) {
+        try {
+            results.push(result);
+        } catch (e) {
+            results.push(e);
+        }
+        finally {
+            returns += 1;
+        }
+        if (returns == tasks.length) {
+            callback(results);
+        }
     }
+
+    function invoker(task) {
+        try {
+            var result = task.execute();
+            callbackWait(result);
+        }
+        catch (e) {
+            results.push(e);
+        }
+    }
+
+    for (var i = 0; i < this.tasks.length; i++) {
+        invoker(tasks[i]);
+    }
+    if(callback)
+        callback(results);
+    else
+        return results;
+
+    return null;
 };
 
 TaskHandler.prototype.executeAsync = function (callback) {
@@ -46,7 +152,6 @@ TaskHandler.prototype.executeAsync = function (callback) {
     var results = [];
     var returns = 0;
     var tasks = this.tasks;
-    
     function callbackWait(result) {
         try {
             results.push(result);
@@ -74,4 +179,6 @@ TaskHandler.prototype.executeAsync = function (callback) {
     for (var i = 0; i < this.tasks.length; i++) {
         setTimeout(invoker, 0, tasks[i]);
     }
+    
+    return null;
 };

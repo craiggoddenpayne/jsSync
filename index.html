@@ -1,31 +1,103 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <title></title>
     <script type="text/javascript" src="jsSyncCore.1.0.js"></script>
-
 </head>
 <body>
+    <div id="results">
+    </div>
     <script type="text/javascript">
-        var task1 = new Task(function () {
-            alert("hello");
-            return "1";
-        });
-        var task2 = new Task(function () {
-            alert("goodbye");
-            return "2";
-        });
+        function waitFor(milliseconds) {
+            var time = new Date().getTime() + milliseconds;
+            var isFinished = function () {
+                return (time < new Date().getTime());
+            };
+            
+            function isItFinished() {
+                while (true) {
+                    if (isFinished() === true) {
+                        return;
+                    }
+                }
+            }
+            isItFinished();
+        }
 
 
-        var handler = new TaskHandler();
-        handler.addTask(task1);
-        handler.addTask(task2);
-        handler.executeAsync(function (results) {
-            alert(results[0]);
-            alert(results[1]);
-        });
+        setTimeout(function () {
+            function writeResult(wittenResults) {
+                var div = document.getElementById("results");
+                div.innerHTML = div.innerHTML + "<br/>" + wittenResults;
+            }
 
+            var syncHandler = new TaskHandler();
+            syncHandler.addTasks([
+                function () {
+                    writeResult("Task 1 started");
+                    writeResult("Task 1 waiting...");
+                    waitFor(500);
+                    writeResult("Task 1 waiting ended");
+                    writeResult("Task 1 ended");
+                    return "Task 1 Result as result of syncHandler";
+                },
+                function () {
+                    writeResult("Task 2 started");
+                    writeResult("Task 2 waiting...");
+                    waitFor(100);
+                    writeResult("Task 2 waiting ended");
+                    writeResult("Task 2 ended");
+                    return "Task 2 Result as result of syncHandler";
+                },
+                function () {
+                    writeResult("Task 3 started");
+                    writeResult("Task 3 waiting...");
+                    waitFor(200);
+                    writeResult("Task 3 waiting ended");
+                    writeResult("Task 3 ended");
+                    return "Task 3 Result as result of syncHandler";
+                },
+                function () {
+                    writeResult("Task 4 started");
+                    writeResult("Task 4 waiting...");
+                    waitFor(700);
+                    writeResult("Task 4 waiting ended");
+                    writeResult("Task 4 ended");
+                    return "Task 4 Result as result of syncHandler";
+                }
+            ]);
+
+            var task1Time = new Date().getTime();
+            writeResult("-----------------------------------");
+            writeResult("Test 1 - Sync Handler with callback");
+            syncHandler.executeSync(function (task1Results) {
+                for (var i = 0; i < task1Results.length; i++) {
+                    writeResult(task1Results[i]);
+                }
+                writeResult("Task 1 time:" + (new Date().getTime() - task1Time).toString());
+            });
+
+            var task2Time = new Date().getTime();
+            writeResult("-----------------------------------");
+            writeResult("Test 2 - Sync Handler returning results");
+            var task2Results = syncHandler.executeSync();
+            for (var i = 0; i < task2Results.length; i++) {
+                writeResult(task2Results[i]);
+            }
+            writeResult("Task 2 time:" + (new Date().getTime() - task2Time).toString());
+
+
+            var task3Time = new Date().getTime();
+            writeResult("-----------------------------------");
+            writeResult("Test 3 - Async Handler with callback");
+            syncHandler.executeAsync(function (task3Results) {
+                for (var i = 0; i < task3Results.length; i++) {
+                    writeResult(task3Results[i]);
+                }
+                writeResult("Task 3 time:" + (new Date().getTime() - task3Time).toString());
+            });
+
+        }, 2000);
     </script>
 </body>
 </html>
