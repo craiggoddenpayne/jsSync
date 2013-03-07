@@ -1,0 +1,31 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <script type="text/javascript" src="jsSyncCore.1.0.js"></script>
+
+</head>
+<body>
+    <script type="text/javascript">
+        var task1 = new Task(function () {
+            alert("hello");
+            return "1";
+        });
+        var task2 = new Task(function () {
+            alert("goodbye");
+            return "2";
+        });
+
+
+        var handler = new TaskHandler();
+        handler.addTask(task1);
+        handler.addTask(task2);
+        handler.executeAsync(function (results) {
+            alert(results[0]);
+            alert(results[1]);
+        });
+
+    </script>
+</body>
+</html>
