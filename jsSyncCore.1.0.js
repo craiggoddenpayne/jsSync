@@ -20,7 +20,7 @@ Task.prototype = {
             return obj;
         var temp = obj.constructor();
         for(var key in obj)
-            temp[key] = clone(obj[key]);
+            temp[key] = this.clone(obj[key]);
         return temp;
     },
     execute: function() {
@@ -108,7 +108,7 @@ TaskHandler.prototype.clone = function(obj) {
         return obj;
     var temp = obj.constructor();
     for (var key in obj)
-        temp[key] = clone(obj[key]);
+        temp[key] = this.clone(obj[key]);
     return temp;
 };
 
