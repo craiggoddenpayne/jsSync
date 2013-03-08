@@ -58,11 +58,13 @@ Task.prototype = {
         var onComplete = this.clone(this.onComplete);
         onComplete.push(taskFunction);
         this.onComplete = onComplete;
+        return this;
     },
     chainOnCatch: function(taskFunction) {
         var onCatch = this.clone(this.onCatch);
         onCatch.push(taskFunction);
         this.onCatch = onCatch;
+        return this;
     },
 };
 
@@ -108,46 +110,7 @@ TaskHandler.prototype.clone = function(obj) {
     return temp;
 };
 
-TaskHandler.prototype.executeSync = function (callback) {
-    var results = [];
-    var returns = 0;
-    var tasks = this.tasks;
-    function callbackWait(result) {
-        try {
-            results.push(result);
-        } catch (e) {
-            results.push(e);
-        }
-        finally {
-            returns += 1;
-        }
-        if (returns == tasks.length) {
-            callback(results);
-        }
-    }
-
-    function invoker(task) {
-        try {
-            var result = task.execute();
-            callbackWait(result);
-        }
-        catch (e) {
-            results.push(e);
-        }
-    }
-
-    for (var i = 0; i < this.tasks.length; i++) {
-        invoker(tasks[i]);
-    }
-    if(callback)
-        callback(results);
-    else
-        return results;
-
-    return null;
-};
-
-TaskHandler.prototype.executeAsync = function (callback) {
+TaskHandler.prototype.execute = function (callback) {
     ///<summary>Executes all functions asynchronously, calling the callback method with aggregated results/execptions</summary>
     var results = [];
     var returns = 0;
