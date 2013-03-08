@@ -1,5 +1,4 @@
-﻿"strict mode";
-
+"strict mode";
 function Task(taskFunction, id) {
     ///<summary>A task, representing a function</summary>
     var task = Object.create(Task.prototype);
@@ -25,6 +24,7 @@ Task.prototype = {
         return temp;
     },
     execute: function() {
+        ///<summary>Executes this task or function</summary>
         var result = null;
         try {
             result = this.handle();
@@ -34,18 +34,18 @@ Task.prototype = {
                 } else if (this.onComplete[i] instanceof Function) {
                     result = this.onComplete[i](result);
                 } else {
-                    throw "jsSyncException:onComplete cannot execute a type that is not a function or task. Type was " + typeof(this.onComplete[i]);
+                    throw "Exception:onComplete cannot execute a type that is not a function or task. Type was " + typeof(this.onComplete[i]);
                 }
             }
         } catch(e) {
-            if (e.indexOf("jsSyncException:") == -1) {
+            if (e.indexOf("Exception:") == -1) {
                 for (var i = 0; i < this.onCatch.length; i++) {
                     if (this.onCatch[i] instanceof Task) {
                         result = this.onCatch[i].execute(result);
                     } else if (this.onCatch[i] instanceof Function) {
                         result = this.onCatch[i](result);
                     } else {
-                        throw "jsSyncException:onCatch cannot execute a type that is not a function or task. Type was " + typeof(this.onCatch[i]);
+                        throw "Exception:onCatch cannot execute a type that is not a function or task. Type was " + typeof(this.onCatch[i]);
                     }
                 }
             } else {
@@ -55,12 +55,14 @@ Task.prototype = {
         return result;
     },
     chainOnComplete: function(taskFunction) {
+        ///<summary>Chains a task to start once this task has complete</summary>
         var onComplete = this.clone(this.onComplete);
         onComplete.push(taskFunction);
         this.onComplete = onComplete;
         return this;
     },
     chainOnCatch: function(taskFunction) {
+        ///<summary>Chains a task to start if this task throws an exception</summary>
         var onCatch = this.clone(this.onCatch);
         onCatch.push(taskFunction);
         this.onCatch = onCatch;
@@ -68,21 +70,19 @@ Task.prototype = {
     },
 };
 
+TaskException.prototype.message = null;
+function TaskException(exception) {
+    var e = Object.create(TaskException.prototype);
+    e.message = exception;
+    return e;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-function TaskHandler() { }
+function TaskHandler() {
+    ///<summary>Handles task execution and result aggregation</summary>
+}
 TaskHandler.prototype.tasks = [];
 TaskHandler.prototype.addTask = function (task) {
+    ///<summary>Adds a task to this task handle. It can be a task or a function</summary>
     if(task instanceof Function) {
         task = new Task(task);
     }
@@ -91,6 +91,7 @@ TaskHandler.prototype.addTask = function (task) {
     this.tasks = tasks;
 };
 TaskHandler.prototype.addTasks = function (arrayOfTask) {
+    ///<summary>Adds tasks to this task handle. They can be a tasks or functions</summary>
     var tasks = this.clone(this.tasks);
     for(var i=0; i < arrayOfTask.length; i++) {    
         if(arrayOfTask[i] instanceof Function) {
@@ -102,6 +103,7 @@ TaskHandler.prototype.addTasks = function (arrayOfTask) {
 };
 
 TaskHandler.prototype.clone = function(obj) {
+    ///<summary>Clones an object, breaking references</summary>
     if (obj == null || typeof(obj) != 'object')
         return obj;
     var temp = obj.constructor();
@@ -111,7 +113,7 @@ TaskHandler.prototype.clone = function(obj) {
 };
 
 TaskHandler.prototype.execute = function (callback) {
-    ///<summary>Executes all functions asynchronously, calling the callback method with aggregated results/execptions</summary>
+    ///<summary>Executes all associated tasks or functions asynchronously, calling the callback method with aggregated results/exceptions</summary>
     var results = [];
     var returns = 0;
     var tasks = this.tasks;
@@ -119,7 +121,7 @@ TaskHandler.prototype.execute = function (callback) {
         try {
             results.push(result);
         } catch (e) {
-            results.push(e);
+            results.push(new TaskException(e));
         }
         finally {
             returns += 1;
@@ -135,7 +137,7 @@ TaskHandler.prototype.execute = function (callback) {
             callbackWait(result);
         }
         catch (e) {
-            results.push(e);
+            results.push(new TaskException(e));
         }
     }
 
